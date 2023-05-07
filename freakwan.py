@@ -5,7 +5,7 @@
 # See the LICENSE file for more information
 
 import machine, ssd1306, sx1276, time, urandom, gc, bluetooth, sys, io
-from machine import Pin, SoftI2C, ADC
+from machine import Pin, SoftI2C, ADC, UART
 import uasyncio as asyncio
 from wan_config import *
 from scroller import Scroller
@@ -65,6 +65,11 @@ class FreakWAN:
         # a 3.7V battery is used, to sample it we need the full 3.3
         # volts range.
         self.battery_adc.atten(ADC.ATTN_11DB)
+
+        # Init uart for GPS
+        self.uart1 = UART(1, baudrate=9600, tx=34, rx=12)
+
+
 
         # Init TX led
         if self.config['tx_led']:
@@ -236,6 +241,9 @@ class FreakWAN:
         self.lora.begin()
         self.lora.configure(self.config['lora_fr'],self.config['lora_bw'],self.config['lora_cr'],self.config['lora_sp'],self.config['lora_pw'])
         if was_receiving: self.lora.receive()
+
+    def get_gps_data(self):
+        return self.uart1.read()
 
     # Return the battery voltage. The battery voltage is divided
     # by two and fed into the ADC at pin 35.

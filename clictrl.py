@@ -254,6 +254,12 @@ class CommandsController:
             send_reply("Valid subcommands: save, reset")
         return True
 
+    def gps(self,argv,argc,send_reply):
+        if argc != 1: return False
+        gps = self.fw.get_gps_data()
+        send_reply("gps: " + gps)
+        return True
+
     def cmd_bat(self,argv,argc,send_reply):
         if argc != 1: return False
         volts = self.fw.get_battery_microvolts()/1000000
