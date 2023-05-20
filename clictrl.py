@@ -254,10 +254,10 @@ class CommandsController:
             send_reply("Valid subcommands: save, reset")
         return True
 
-    def gps(self,argv,argc,send_reply):
+    def cmd_gps(self,argv,argc,send_reply):
         if argc != 1: return False
-        gps = self.fw.get_gps_data()
-        send_reply("gps: " + gps)
+        position = self.fw.get_gps_data()
+        send_reply("UTC Time: "+ position[0] +" Lat: "+ position[1] +" Lon: " + position[2])
         return True
 
     def cmd_bat(self,argv,argc,send_reply):

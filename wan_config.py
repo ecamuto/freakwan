@@ -69,3 +69,11 @@ class UserConfig:
     config['irc'] = {
         'enabled': False
     }
+
+    # GPS configuration. Enable it and set your pins in order to get data from 
+    # your gps module
+    config['gps'] = {
+        'enabled': False,
+        'rx': 34,
+        'tx': 12
+    }

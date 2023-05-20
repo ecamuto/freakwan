@@ -19,8 +19,9 @@ from bt import BLEUART
 from fci import ImageFCI
 from keychain import Keychain
 from networking import IRC, WiFiConnection
+from gps import read_sentence, parse_position
 
-Version="0.34"
+Version="0.35"
 
 # The application itself, including all the WAN routing logic.
 class FreakWAN:
@@ -65,11 +66,6 @@ class FreakWAN:
         # a 3.7V battery is used, to sample it we need the full 3.3
         # volts range.
         self.battery_adc.atten(ADC.ATTN_11DB)
-
-        # Init uart for GPS
-        self.uart1 = UART(1, baudrate=9600, tx=34, rx=12)
-
-
 
         # Init TX led
         if self.config['tx_led']:
@@ -123,6 +119,9 @@ class FreakWAN:
         ble = bluetooth.BLE()
         self.uart = BLEUART(ble, name="FW_%s" % self.config['nick'])
         self.cmdctrl = CommandsController(self)
+
+        # Init GPS Uart
+        self.uart1 = UART(1, baudrate=9600, tx=12, rx=34)
 
         # Queue of messages we should send ASAP. We append stuff here, so they
         # should be sent in reverse order, from index 0.
@@ -241,9 +240,6 @@ class FreakWAN:
         self.lora.begin()
         self.lora.configure(self.config['lora_fr'],self.config['lora_bw'],self.config['lora_cr'],self.config['lora_sp'],self.config['lora_pw'])
         if was_receiving: self.lora.receive()
-
-    def get_gps_data(self):
-        return self.uart1.read()
 
     # Return the battery voltage. The battery voltage is divided
     # by two and fed into the ADC at pin 35.
@@ -570,6 +566,15 @@ class FreakWAN:
                 self.refresh_view()
                 counter += 1
             await asyncio.sleep(urandom.randint(15000,20000)/1000) 
+
+    def get_gps_data(self):
+        try:
+            sentence = read_sentence(self.uart1)
+            position = parse_position(sentence)
+            if position:
+                return position
+        except Exception as e:
+            print("Error:", e)
 
     # This shows some information about the process in the debug console.
     def show_status_log(self):
