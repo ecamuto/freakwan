@@ -93,11 +93,12 @@ class CommandsController:
         cmd = str(cmd).strip()
         if len(cmd) == 0: return
 
-        print("CLI: %s" % cmd)
+        self.fw.serial_log("CLI: %s" % cmd)
         if cmd[0] == '!':
             # Command call.
             argv = self.split_arguments(cmd[1:])
             argc = len(argv)
+            if argc == 0: return
             method_name = 'cmd_'+argv[0]
             if not hasattr(self.__class__,method_name):
                 send_reply("Unknown command: "+argv[0])
@@ -243,7 +244,7 @@ class CommandsController:
             settings = ['nick', 'lora_sp','lora_bw','lora_cr','lora_pw','automsg','irc','wifi_default_network','quiet','check_crc']
             for s in settings:
                 send_reply("%s: %s" % (s, repr(self.fw.config.get(s))))
-            send_reply("wifi_enabled: %s" % repr(self.fw.wifi and self.fw.is_connected()))
+            send_reply("wifi_enabled: %s" % repr(self.fw.wifi and self.fw.wifi.is_connected()))
         elif argv[1] == "save":
             self.fw.save_settings()
             send_reply("Settings saved.")
@@ -402,3 +403,7 @@ class CommandsController:
         except Exception as e:
             send_reply("Error loading the image: "+str(e))
         return True
+
+    def cmd_log(self,argv,argc,send_reply):
+        self.fw.serial_log_enabled = not self.fw.serial_log_enabled
+        send_reply("Serial logging set to: "+str(self.fw.serial_log_enabled))

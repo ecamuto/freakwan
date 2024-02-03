@@ -96,7 +96,7 @@ class BLEUART:
     def __init__(self, ble, name="mpy-uart", rxbuf=100):
         name = name[:16]
         self._ble = ble
-        self._ble.active(True)
+        if not self._ble.active(): self._ble.active(True)
         self._ble.irq(self.irq_handler)
         ((self._tx_handle, self._rx_handle),) = self._ble.gatts_register_services((_UART_SERVICE,))
         # Increase the size of the rx buffer and enable append mode.
@@ -154,3 +154,18 @@ class BLEUART:
 
     def _advertise(self, interval_us=200000):
         self._ble.gap_advertise(interval_us, adv_data=self._payload, resp_data=self._resp)
+
+
+
+if  __name__ == "__main__":
+    import time
+
+    def receive_callback():
+        data = uart.read().decode()
+        print("From BLE",data)
+        uart.print(data)
+
+    ble = bluetooth.BLE()
+    uart = BLEUART(ble, name="ble_test")
+    uart.set_callback(receive_callback)
+    while True: time.sleep(1)

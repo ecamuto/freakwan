@@ -20,9 +20,9 @@ protocol are the following:
 * Bandwidth usage mitigation features.
 * Duty cycle tracking.
 * Local storage of messages in the device flash, with automatic deletion of old messages.
-* Simple home-made driver for the sx1276 LoRa chip. We will support SX126x too, very soon. In general, no external dependencies.
+* Simple home-made driver for the SX1276 and SX1262 LoRa chip. In general, no external dependencies. Runs with vanilla MicroPython installs.
 * OLED terminal alike output. OLED burning pixels protection.
-* CLI interface via Bluetooth LE, with applications available for Android, iPhone, Linux, MacOS, Windows.
+* CLI interface via USB serial and Bluetooth LE.
 * IRC interface: the device can work as a bot over the IRC protocol.
 * Simple to understand, hackable code base.
 
@@ -30,28 +30,70 @@ This code is currently a functional work in progress, designed to work with the 
 
 1. LILYGO TTGO T3 v2 1.6 LoRa module.
 2. LILYGO TTGO T Beam LoRa module.
+3. LILYGO T-WATCH S3.
 
-However changing the pins in the configuration, to adapt it to other ESP32 modules that have an SX1276 (or compatible) LoRa chip and an SSD1306 display (or no dislay, in headless mode), should be very little work. We are waiting to receive our T-ECHO devices to try supporting this device as well.
+However changing the pins in the configuration, to adapt it to other ESP32 modules that have an SX1276, SX1262 LoRa chips, and an SSD1306 or ST7789 display (or no dislay, in headless mode), should be very little work. T-ECHO devices are also supported, even if with less features, in the C port of FreanWAN, under the `techo-port` directory, but the T-ECHO port is still alpha quality software.
 
 **FreakWAN is implemented in MicroPython**, making use only of default libraries.
 
 # Installation
 
-* Install [MicroPython](https://micropython.org/download/LILYGO_TTGO_LORA32/) on your device.
+* Install [MicroPython](https://micropython.org/download/LILYGO_TTGO_LORA32/) on your device. **NOTE: MicroPython versions > 1.19.1 have buggy bluetooth stack with certain devices**, so before they fix it, it's better to stick to version 1.19.1. However your device may not have a working 1.19.1 version (it's the case with certain ESP32 S3 devices like the Lilygo t-watch S3): in this case you need to disable BLE manually, editing `wan_config.py` and setting `ble_enabled` to False.
 * Clone this repository, and edit `wan_config.py` to set your nickname and status message, set the frequency according to your device. **Warning**: make sure to set the right frequency based on the LoRa module you own, and make sure your antenna is already installed before using the software, or you **may damage your hardware**.
-* Transfer all the `.py` files in the root directory of this project in your device. To transfer the files, you can use [ampy](https://github.com/scientifichackers/ampy) (`pip3 install adafruit-ampy` should be enough), or an alternative tool that we wrote, and is conceptually part of the FreakWAN effort, called [talk32](https://github.com/antirez/talk32). Talk32 is much faster at transferring files, but is yet alpha quality code. If you use Talk32, you will need to run something like this:
+* Copy one of the files inside the `devices` folder in the main folder as `device_config.py`, for instance if I have a T3 v2 1.6 device, I will do:
+
+    cp devices/device_config.t3_v2_1.6.py ./device_config.py
+
+* Transfer all the `.py` files in the root directory of this project in your device. To transfer the files, you can use **mpremote** (`pip3 install mpremote` should be enough), or an alternative tool that we wrote, and is conceptually part of the FreakWAN effort, called [talk32](https://github.com/antirez/talk32). Talk32 is not as fast as mpremote at transferring files, but sometimes mpremote does not work with certain devices and talk32 does (and the other way around).
+
+    mpremote cp *.py :
+
+or
 
     talk32 /dev/tty.usbserial001 put *.py
 
-* Restart your device. If everything is fine you will see the splash screen and then the program version.
+Please note that you **don't need** both the command lines. Just one depending on the tool you use.
+
+* Restart your device: you can either power it off/on, or use `mpremote repl` and hit `Ctrl_D` to trigger a soft reset. Sometimes devices also have a reset button. If everything is fine you will see the splash screen and then the program version.
+* If you are using a T-WATCH S3, or other recent Lyligo devices based on ESP32-S3, and your splash screen freezes (the waves should move and then the splash screen should disappear, if everything works well), please try to disable BLE from `wan_config.py`.
 
 # Usage
+
+The two simplest ways to send commands to the device, write messages
+that will be broadcasted and also receive messages sent by other
+users, it is to use the USB or Bluetooth serial.
+
+## Serial CLI
+
+To obtain a serial command line interface, make sure the device is connected
+via an USB cable with your computer. Than connect to the device serial with
+`talk32`, `minicom`, `screen` or whatever serial terminal you want to use.
+Normally the bound rate is 115200. Example of command lines and tools you could use:
+
+    mpremote repl
+
+or
+
+    talk32 /dev/tty.usbserial001 repl
+
+or
+
+    screen /dev/tty.usbserial001 115200
+
+Of course the name of the device is just an example. Try `ls /dev/tty*` to see the list of possible device names in your computer.
+
+Once you connect, you will see the device logs, but you will also be able
+to send bang commands or messages to the chat (see below).
+
+## Bluetooth low energy CLI
 
 It is possible to use the device via Bluetooth LE, using one of the following applications:
 * Android: install one of the many BLE UART apps available. We recommend the [Serial Bluetooth Terminal app](https://play.google.com/store/apps/details?id=de.kai_morich.serial_bluetooth_terminal&hl=en&gl=US). It works great out of the box, but for the best experience open the settings, go to the *Send* tab, and select *clear input on send*. An alternative is [nRF Toolbox](https://www.nordicsemi.com/Products/Development-tools/nrf-toolbox), select the UART utility service, connect to the device and send a text message or just `!help`.
 * iPhone: [BLE Terminal HM-10](https://apps.apple.com/it/app/ble-terminal-hm-10/id1398703795?l=en) works well and is free. There are other more costly options.
 * Linux Desktop: install [Freakble](https://github.com/eriol/freakble) following the project README.
-* For MacOS you may try Bluefruit Connect. It is available in the Mac App Store.
+* For MacOS, there is a BLE UART app directly inside this software distribution under the `osx-bte-cli` directory. Please read the README file that is there.
+
+## Sending commands and messages
 
 Using one of the above, you can talk with the device, and chat with other users around, sending CLI commands.
 If you just type some text, it will be sent as message in the network. Messages received from the network are also shown in the serial console.
@@ -91,7 +133,7 @@ By default LoRa messages are sent in clear text and will reach every device that
 
 While Alice will do:
 
-    !addkey bob abcd1234
+    !addkey bob abcd123
 
 (Note: they need to use much longer and hard to guess key! A good way to generate a key is to to combine a number of words and numbers together, or just generate a random 256 bit hex string with any available tool).
 
@@ -143,12 +185,12 @@ The rest of this document is useful for anybody wanting to understand the intern
 The goals of the design is:
 
 1. Allow far nodes to communicate using intermediate nodes.
-2. To employ techniques to mitigate missed messages due to the fact the SX1276 is half-duplex, so can't hear messages when transmitting.
+2. To employ techniques to mitigate missed messages due to the fact LoRa is inherently half-duplex, so can't hear messages when transmitting.
 3. Do 1 and 2 considering the available data rate, which is very low.
 
 ## Message formats
 
-The low level (layer 2) format is the one with the explicit header selected, so it is up to the chip to add a length, a CRC and so forth. This layer is not covered here, as from the SX1276 driver we directly get the *clean* bytes received. So this covers layer 3, that is the messages format implemented by FreakWAN.
+The low level (layer 2) format is the one with the explicit header selected, so it is up to the chip to add a length, a CRC and so forth. This layer is not covered here, as from the SX1276 / SX1262 driver we directly get the *clean* bytes received. So this covers layer 3, that is the messages format implemented by FreakWAN.
 
 The first byte is the message type byte. The following message types are defined:
 
@@ -215,9 +257,10 @@ of the message:
 
 * Bit 3: `Media`.
 
-When this happens, the data inside the message is not some text in the form `nick`+`message`. Instead the first byte of the message is the media type ID, from 0 to 255. Right now only a media type is defined:
+When this happens, the data inside the message is not some text in the form `nick`+`message`. Instead the first byte of the message is the media type ID, from 0 to 255. Right now only two media types are defined:
 
 * Media type 0: FreakWAN Compressed Image (FCI). Small 1 bit color image.
+* Media type 1: Sensor reading.
 
 ```
 +--------+------//------+-----------+-------------+----//
