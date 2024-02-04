@@ -4,6 +4,7 @@
 # This code is released under the BSD 2 clause license.
 # See the LICENSE file for more information
 
+from gps import parse_position, read_sentence
 import machine, ssd1306, sx1276, time, urandom, gc, bluetooth, sys, io
 import select
 from machine import Pin, SoftI2C, ADC, SPI, UART
@@ -623,7 +624,7 @@ class FreakWAN:
                 counter += 1
             await asyncio.sleep(urandom.randint(15000,20000)/1000) 
 
-    def get_gps_data(self):
+    async def get_gps_data(self):
         try:
             sentence = read_sentence(self.uart1)
             position = parse_position(sentence)
